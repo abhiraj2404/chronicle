@@ -79,7 +79,7 @@ export default function Page() {
       <footer className="border-t border-zinc-800 py-6">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-linear-to-br from-purple-500 to-pink-500">
               <div className="absolute inset-0 flex items-center justify-center">
                 <TrendingUp className="h-4 w-4 text-white" />
               </div>
