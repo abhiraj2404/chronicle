@@ -4,6 +4,7 @@ export interface ISwipe extends Document {
     swiperWallet: string;
     postId: mongoose.Types.ObjectId;
     isRightSwipe: boolean;
+    buyAmount?: number;
     createdAt: Date;
 }
 
@@ -12,6 +13,7 @@ const SwipeSchema: Schema = new Schema(
         swiperWallet: { type: String, required: true },
         postId: { type: Schema.Types.ObjectId, ref: 'Post', required: true },
         isRightSwipe: { type: Boolean, required: true },
+        buyAmount: { type: Number },
         createdAt: { type: Date, default: Date.now },
     },
     { timestamps: true }
