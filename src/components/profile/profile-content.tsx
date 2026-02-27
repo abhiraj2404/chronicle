@@ -1,6 +1,5 @@
 'use client'
 
-import { Comments } from '@/components/profile/comments/comments'
 import { FollowList } from '@/components/profile/follow-list'
 import { MyProfile } from '@/components/profile/my-profile'
 import { DisplaySuggestedAndGlobal } from '@/components/suggested-and-creators-invite/hooks/display-suggested-and-global'
@@ -101,11 +100,10 @@ export function ProfileContent({ username }: Props) {
       <div className="bg-card rounded-lg p-1 flex">
         <button
           type="button"
-          className={`flex-1 py-3 px-4 rounded-md text-center transition-all duration-200 ${
-            selectedTab === 'profile'
+          className={`flex-1 py-3 px-4 rounded-md text-center transition-all duration-200 ${selectedTab === 'profile'
               ? 'button-primary font-medium shadow-lg'
               : 'text-muted-foreground hover:bg-muted'
-          }`}
+            }`}
           onClick={() => setSelectedTab('profile')}
         >
           <div className="flex items-center justify-center space-x-2">
@@ -127,11 +125,10 @@ export function ProfileContent({ username }: Props) {
         </button>
         <button
           type="button"
-          className={`flex-1 py-3 px-4 rounded-md text-center transition-all duration-200 ${
-            selectedTab === 'portfolio'
+          className={`flex-1 py-3 px-4 rounded-md text-center transition-all duration-200 ${selectedTab === 'portfolio'
               ? 'button-primary font-medium shadow-lg'
               : 'text-muted-foreground hover:bg-muted'
-          }`}
+            }`}
           onClick={() => setSelectedTab('portfolio')}
         >
           <div className="flex items-center justify-center space-x-2">
@@ -154,11 +151,10 @@ export function ProfileContent({ username }: Props) {
         </button>
         <button
           type="button"
-          className={`flex-1 py-3 px-4 rounded-md text-center transition-all duration-200 ${
-            selectedTab === 'nfts'
+          className={`flex-1 py-3 px-4 rounded-md text-center transition-all duration-200 ${selectedTab === 'nfts'
               ? 'button-primary font-medium shadow-lg'
               : 'text-muted-foreground hover:bg-muted'
-          }`}
+            }`}
           onClick={() => setSelectedTab('nfts')}
         >
           <div className="flex items-center justify-center space-x-2">
@@ -201,7 +197,6 @@ export function ProfileContent({ username }: Props) {
             />
             <DisplaySuggestedAndGlobal username={profileUsername} />
           </div>
-          <Comments username={profileUsername} />
         </>
       ) : (
         <PortfolioView
