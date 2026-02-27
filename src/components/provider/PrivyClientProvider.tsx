@@ -13,6 +13,9 @@ export function PrivyClientProvider({
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
       config={{
         appearance: { walletChainType: 'solana-only' },
+        embeddedWallets: {
+          createOnLogin: 'users-without-wallets',
+        },
         externalWallets: {
           solana: { connectors: toSolanaWalletConnectors() },
         },

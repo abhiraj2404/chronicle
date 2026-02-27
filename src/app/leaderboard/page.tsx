@@ -10,6 +10,7 @@ import {
   Star,
   Trophy,
 } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -148,9 +149,10 @@ export default function LeaderboardPage() {
   ]
 
   return (
-    <div className="flex flex-col px-4 pt-4 pb-4 gap-5 no-scrollbar overflow-y-auto"
-      style={{ minHeight: 'calc(100dvh - 72px)' }}>
-
+    <div
+      className="flex flex-col px-4 pt-4 pb-4 gap-5 no-scrollbar overflow-y-auto"
+      style={{ minHeight: 'calc(100dvh - 72px)' }}
+    >
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="text-center space-y-1">
         <div className="flex items-center justify-center gap-2">
@@ -200,8 +202,14 @@ export default function LeaderboardPage() {
           const podiumOrder = [2, 1, 3][visualIdx]
           const isFirst = podiumOrder === 1
           const medalColor = MEDAL_COLORS[podiumOrder - 1]
-          const pedestalH = isFirst ? 'h-24' : podiumOrder === 2 ? 'h-16' : 'h-12'
-          const avatarSize = isFirst ? 'w-14 h-14 text-xl' : 'w-11 h-11 text-base'
+          const pedestalH = isFirst
+            ? 'h-24'
+            : podiumOrder === 2
+              ? 'h-16'
+              : 'h-12'
+          const avatarSize = isFirst
+            ? 'w-14 h-14 text-xl'
+            : 'w-11 h-11 text-base'
 
           return (
             <motion.div
@@ -213,9 +221,17 @@ export default function LeaderboardPage() {
             >
               {/* Medal icon */}
               {isFirst ? (
-                <Crown size={20} fill={medalColor} style={{ color: medalColor }} />
+                <Crown
+                  size={20}
+                  fill={medalColor}
+                  style={{ color: medalColor }}
+                />
               ) : (
-                <Medal size={16} fill={medalColor} style={{ color: medalColor }} />
+                <Medal
+                  size={16}
+                  fill={medalColor}
+                  style={{ color: medalColor }}
+                />
               )}
 
               {/* Avatar */}
@@ -298,7 +314,11 @@ export default function LeaderboardPage() {
                   @{entry.username}
                 </p>
                 {entry.verified && (
-                  <Shield size={10} fill="#60a5fa" className="text-blue-400 flex-shrink-0" />
+                  <Shield
+                    size={10}
+                    fill="#60a5fa"
+                    className="text-blue-400 flex-shrink-0"
+                  />
                 )}
               </div>
               <p className="text-[10px] text-zinc-500">
@@ -340,7 +360,7 @@ export default function LeaderboardPage() {
         <p className="text-xs text-zinc-600">
           Think you can do better? Start calling.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-transform active:scale-95"
           style={{
@@ -350,7 +370,7 @@ export default function LeaderboardPage() {
         >
           <Flame size={14} fill="white" />
           Start Swiping
-        </a>
+        </Link>
       </div>
     </div>
   )

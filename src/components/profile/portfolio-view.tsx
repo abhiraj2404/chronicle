@@ -5,6 +5,7 @@ import type { ITokenPortfolioItem } from '@/components/trade/models/birdeye/bird
 import type { HeliusAsset } from '@/types/helius'
 import { fetchAssets } from '@/utils/helius/fetch-assets'
 import { PublicKey } from '@solana/web3.js'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
 interface PortfolioViewProps {
@@ -346,15 +347,13 @@ export function PortfolioView({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-muted rounded-lg overflow-hidden">
-                  <img
+                <div className="bg-muted rounded-lg overflow-hidden relative aspect-square">
+                  <Image
                     src={getNftImageUrl(selectedNft)}
                     alt={`NFT: ${selectedNft.content?.metadata?.name || 'Unnamed NFT'}`}
                     className="w-full object-cover"
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).src =
-                        'https://via.placeholder.com/500?text=No+Image'
-                    }}
+                    fill
+                    unoptimized
                   />
                 </div>
 
@@ -488,15 +487,13 @@ function TokenCard({ token }: { token: ITokenPortfolioItem }) {
     <div className="bg-card rounded-lg p-4 flex items-center hover:bg-muted transition-all duration-200">
       <div className="flex-shrink-0 w-10 h-10 mr-4">
         {token.logoURI && (
-          <img
+          <Image
             src={token.logoURI}
             alt={token.symbol}
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-full bg-muted"
-            onError={(e) => {
-              // Replace broken image with a placeholder
-              ;(e.target as HTMLImageElement).src =
-                'https://via.placeholder.com/40'
-            }}
+            unoptimized
           />
         )}
       </div>
@@ -553,15 +550,12 @@ function NFTCard({ nft, onViewDetails }: NFTCardProps) {
         }}
         aria-label={`View details for ${nftName}`}
       >
-        <img
+        <Image
           src={getNftImageUrl(nft)}
           alt={`NFT: ${nftName}`}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-          onError={(e) => {
-            ;(e.target as HTMLImageElement).src =
-              'https://via.placeholder.com/300?text=Error+Loading'
-          }}
-          loading="lazy"
+          fill
+          unoptimized
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-300 flex items-center justify-center">
           <button
