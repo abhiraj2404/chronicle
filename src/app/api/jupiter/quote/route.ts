@@ -70,6 +70,9 @@ export async function GET(request: NextRequest) {
     // Add timestamp for rate limiting
     requestTimestamps.push(now)
 
+    console.log("swap quote request - input mint ", inputMint);
+    console.log("swap quote request - output mint ", outputMint);
+
     const url = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${
       slippageBps || 50
     }`

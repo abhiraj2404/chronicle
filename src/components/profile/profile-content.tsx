@@ -1,34 +1,32 @@
 'use client'
 
 import { useAuth } from '@/components/auth/auth-provider'
-import { Comments } from '@/components/profile/comments/comments'
-import { FollowList } from '@/components/profile/follow-list'
-import { DisplaySuggestedAndGlobal } from '@/components/suggested-and-creators-invite/hooks/display-suggested-and-global'
 import { useGetProfileInfo } from '@/components/profile/hooks/use-get-profile-info'
 import type { IGetSocialResponse } from '@/models/profile.models'
 import { PublicKey } from '@solana/web3.js'
 import { motion } from 'framer-motion'
-import {
-  BarChart2,
-  ChevronLeft,
-  ImageIcon,
-  LogOut,
-  User,
-} from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, Heart, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { PortfolioView } from './portfolio-view'
+import { useCallback, useEffect, useState } from 'react'
 
 interface Props {
   username: string
 }
 
-type Tab = 'profile' | 'portfolio' | 'nfts'
+interface IPost {
+  _id: string
+  creatorWallet: string
+  contentUrl: string
+  caption: string
+  tokenCA: string
+  rightSwipes: number
+  createdAt: string
+}
 
-const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  { key: 'profile', label: 'Profile', icon: <User size={14} /> },
-  { key: 'portfolio', label: 'Tokens', icon: <BarChart2 size={14} /> },
-  { key: 'nfts', label: 'NFTs', icon: <ImageIcon size={14} /> },
+const GRADIENTS = [
+  'linear-gradient(135deg, #0d9488, #2dd4bf)',
+  'linear-gradient(135deg, #7c3aed, #a78bfa)',
+  'linear-gradient(135deg, #2563eb, #60a5fa)',
 ]
 
 export function ProfileContent({ username }: Props) {
@@ -38,12 +36,35 @@ export function ProfileContent({ username }: Props) {
   // Real Profile logic
   const isOwnProfile = !!myUsername && myUsername === username
   const [profileUsername, setProfileUsername] = useState(username)
-  const { data: profileInfo, refetch: refetchProfile } = useGetProfileInfo({ username: profileUsername })
+  const { data: profileInfo } = useGetProfileInfo({ username: profileUsername })
 
   const [isLoading, setIsLoading] = useState(true)
   const [followers, setFollowers] = useState<IGetSocialResponse | null>(null)
   const [following, setFollowing] = useState<IGetSocialResponse | null>(null)
-  const [selectedTab, setSelectedTab] = useState<Tab>('profile')
+  const [posts, setPosts] = useState<IPost[]>([])
+
+  const walletForPosts = (() => {
+    try {
+      new PublicKey(username)
+      return username
+    } catch {
+      return profileInfo?.walletAddress ?? null
+    }
+  })()
+
+  const fetchPosts = useCallback(async () => {
+    if (!walletForPosts) return
+    try {
+      const res = await fetch(
+        `/api/posts?walletAddress=${encodeURIComponent(walletForPosts)}&byCreator=true`,
+      )
+      if (!res.ok) return
+      const data = await res.json()
+      setPosts(data.posts ?? [])
+    } catch (e) {
+      console.error('Failed to fetch profile posts:', e)
+    }
+  }, [walletForPosts])
 
   useEffect(() => {
     async function init() {
@@ -92,6 +113,10 @@ export function ProfileContent({ username }: Props) {
       setIsLoading(false)
     }
   }, [username])
+
+  useEffect(() => {
+    fetchPosts()
+  }, [fetchPosts])
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -193,6 +218,10 @@ export function ProfileContent({ username }: Props) {
 
           <div className="flex gap-6 border-y border-white/5 py-4 mb-6">
             <div className="flex flex-col">
+              <span className="text-xl font-black">{posts.length}</span>
+              <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Posts</span>
+            </div>
+            <div className="flex flex-col">
               <span className="text-xl font-black">{followers?.profiles?.length || 0}</span>
               <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Followers</span>
             </div>
@@ -204,67 +233,57 @@ export function ProfileContent({ username }: Props) {
         </div>
       </div>
 
+      {/* ── Content (posts) ─────────────────────────────────────────── */}
       <div className="px-4 flex flex-col gap-4">
-        {/* ── Tabs ────────────────────────────────────────────────── */}
-        <div
-          className="rounded-xl p-1 flex gap-1 mb-2"
-          style={{
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.05)',
-          }}
-        >
-          {TABS.map(({ key, label, icon }) => {
-            const active = selectedTab === key
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setSelectedTab(key)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-bold transition-all"
-                style={
-                  active
-                    ? {
-                        background: 'linear-gradient(135deg, #16a34a, #22c55e)',
-                        color: '#fff',
-                        boxShadow: '0 0 12px rgba(34,197,94,0.2)',
-                      }
-                    : { color: '#6b7280' }
-                }
-              >
-                {icon}
-                {label}
-              </button>
-            )
-          })}
-        </div>
+        {posts.map((post, idx) => {
+          const timeAgo = post.createdAt
+            ? (() => {
+                const d = new Date(post.createdAt)
+                const sec = (Date.now() - d.getTime()) / 1000
+                if (sec < 60) return 'Just now'
+                if (sec < 3600) return `${Math.floor(sec / 60)}m ago`
+                if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`
+                return `${Math.floor(sec / 86400)}d ago`
+              })()
+            : ''
+          const tokenLabel = post.tokenCA ? `$${post.tokenCA.slice(0, 6)}` : '—'
+          const gradient = GRADIENTS[idx % GRADIENTS.length]
+          return (
+            <motion.div
+              key={post._id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: idx * 0.05 }}
+              className="bg-[#0C1018] border border-white/5 rounded-3xl p-5"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white"
+                    style={{ background: gradient }}
+                  >
+                    {tokenLabel[1] ?? '?'}
+                  </div>
+                  <span className="font-bold text-sm">{tokenLabel}</span>
+                </div>
+                <span className="text-xs text-zinc-500 font-medium">{timeAgo}</span>
+              </div>
 
-        {/* ── Tab content ─────────────────────────────────────────── */}
-        <motion.div
-          key={selectedTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {selectedTab === 'profile' ? (
-            <>
-              <div className="flex flex-col gap-3">
-                <FollowList
-                  followers={followers || { profiles: [], page: 0, pageSize: 0 }}
-                  following={following || { profiles: [], page: 0, pageSize: 0 }}
-                />
-                <DisplaySuggestedAndGlobal username={profileUsername} />
+              <p className="text-zinc-300 text-sm leading-relaxed mb-4">{post.caption}</p>
+
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-1.5 text-zinc-500">
+                  <Heart size={16} />
+                  <span className="text-xs font-bold">{post.rightSwipes ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[#22c55e] bg-[#22c55e]/10 px-3 py-1 rounded-full ml-auto">
+                  <ArrowUpRight size={14} />
+                  <span className="text-xs font-black">Token</span>
+                </div>
               </div>
-              <div className="mt-3">
-                <Comments username={profileUsername} />
-              </div>
-            </>
-          ) : (
-            <PortfolioView
-              username={username}
-              initialTokenType={selectedTab === 'nfts' ? 'nft' : 'fungible'}
-            />
-          )}
-        </motion.div>
+            </motion.div>
+          )
+        })}
       </div>
     </div>
   )

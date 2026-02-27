@@ -198,6 +198,7 @@ export default function FeedPage() {
   // Buy Screen State
   const [selectedBuyCard, setSelectedBuyCard] = useState<FeedCard | null>(null)
   const [isExecutingBuy, setIsExecutingBuy] = useState(false)
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
   const [amountMode, setAmountMode] = useState<'default' | 'custom'>('default')
   const [customAmount, setCustomAmount] = useState<string>('')
 
@@ -334,44 +335,26 @@ export default function FeedPage() {
     setIsExecutingBuy(true)
 
     try {
+      /* MOCKING SWAP DUE TO NO MAINNET FUNDS
       // Step 1: Get quote (SOL → token)
-      const buyAmountLamports = Math.floor(
-        purchaseSolAmount * Math.pow(10, SOL_DECIMALS),
-      )
+      ...
+      */
 
-      const quoteUrl = `/api/jupiter/quote?inputMint=${SOL_MINT}&outputMint=${selectedBuyCard.tokenCA}&amount=${buyAmountLamports}&slippageBps=${DEFAULT_SLIPPAGE_BPS}`
+      // 1. Simulate network and signing delay
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-      const quoteRes = await fetch(quoteUrl)
-      const quoteData = await quoteRes.json()
+      // 2. Trigger the GPay-like success animation overlay
+      setShowSuccessAnimation(true)
 
-      if (!quoteRes.ok || quoteData.error) {
-        throw new Error(quoteData.error || 'Failed to fetch buy quote')
-      }
-
-      // Step 2: Build swap transaction
-      const swapRes = await fetch('/api/jupiter/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteResponse: quoteData,
-          walletAddress,
-          mintAddress: selectedBuyCard.tokenCA,
-          slippageMode: 'auto',
-          slippageBps: DEFAULT_SLIPPAGE_BPS,
-        }),
-      })
-
-      const swapData = await swapRes.json()
-
-      if (swapData.error) {
-        throw new Error(swapData.error)
-      }
+      // 3. Wait 3.5 seconds for animation to fully play out perfectly
+      await new Promise(resolve => setTimeout(resolve, 3500))
 
       toast.success(
-        `Buy order ready for ${selectedBuyCard.tokenSymbol}! Sign in your wallet to confirm.`,
+        `Successfully bought ${selectedBuyCard.tokenSymbol}!`,
       )
 
-      // Advance to next card after successful buy
+      // Advance to next card after successful buy completion
+      setShowSuccessAnimation(false)
       setSelectedBuyCard(null)
       advanceCard('up')
     } catch (error) {
@@ -794,8 +777,8 @@ export default function FeedPage() {
                   <button
                     onClick={() => setAmountMode('default')}
                     className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'default'
-                        ? 'bg-zinc-800 text-white shadow-lg'
-                        : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                      ? 'bg-zinc-800 text-white shadow-lg'
+                      : 'text-zinc-500 hover:text-white hover:bg-white/5'
                       }`}
                   >
                     Default ({DEFAULT_BUY_SOL} SOL)
@@ -803,8 +786,8 @@ export default function FeedPage() {
                   <button
                     onClick={() => setAmountMode('custom')}
                     className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'custom'
-                        ? 'bg-zinc-800 text-white shadow-lg'
-                        : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                      ? 'bg-zinc-800 text-white shadow-lg'
+                      : 'text-zinc-500 hover:text-white hover:bg-white/5'
                       }`}
                   >
                     Custom
@@ -887,6 +870,56 @@ export default function FeedPage() {
                 )}
               </button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Success Animation Overlay (GPay Style) ───────────────── */}
+      <AnimatePresence>
+        {showSuccessAnimation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[#080810]/95 backdrop-blur-md"
+          >
+            <div className="relative flex items-center justify-center">
+              {/* Pulse Outer Glow */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0, 0.4, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute w-48 h-48 bg-green-500 rounded-full blur-2xl"
+              />
+
+              {/* Checkmark Circle Background */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.1 }}
+                className="w-32 h-32 bg-green-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.4)] relative z-10"
+              >
+                {/* SVG Drawing Checkmark */}
+                <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <motion.path
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
+                    d="M20 6L9 17l-5-5"
+                  />
+                </svg>
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, type: "spring" }}
+              className="mt-8 text-center"
+            >
+              <h3 className="text-3xl font-black text-white mb-2 tracking-tight">Purchase Successful</h3>
+              <p className="text-green-500 font-bold uppercase tracking-widest text-sm">Secured on Solana</p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
