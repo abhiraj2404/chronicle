@@ -6,13 +6,13 @@ import { useLogin, usePrivy } from '@privy-io/react-auth'
 import {
   Check,
   Clipboard,
-  Coins,
-  Home,
+  Flame,
   LogIn,
   LogOut,
   Menu,
-  RefreshCw,
+  Trophy,
   User,
+  Zap,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -55,18 +55,14 @@ export function Header() {
       }
       setIsDropdownOpen(false)
     }
-
     document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   useEffect(() => {
     if (profiles && profiles.length) {
       setMainUsername(profiles[0].profile.username)
     }
-
     if (isProfileCreated && profileUsername) {
       setMainUsername(profileUsername)
       setIsProfileCreated(false)
@@ -76,135 +72,192 @@ export function Header() {
 
   return (
     <>
-      <div className="border-b-1 border-muted flex items-center justify-center w-full p-3">
-        <div className="max-w-6xl w-full flex items-center justify-between">
-          <Link 
-            href="/" 
-            className="hover:opacity-80"
-          >
-            <h1 className="text-2xl font-bold">Solana Starter Kit Template</h1>
+      <div
+        className="border-b border-zinc-800/60 w-full"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(9,9,11,0.98) 0%, rgba(9,9,11,0.92) 100%)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+          {/* Brand */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, #9333ea, #ec4899)',
+                boxShadow: '0 0 16px rgba(147,51,234,0.5)',
+              }}
+            >
+              <Flame size={14} fill="white" className="text-white" />
+            </div>
+            <span
+              className="text-lg font-black tracking-tight"
+              style={{
+                background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              MEMEX
+            </span>
+            <span className="text-[10px] text-zinc-600 font-mono tracking-widest uppercase hidden sm:block">
+              · tinder for memecoins
+            </span>
           </Link>
 
-          <nav className="flex items-center space-x-8">
-            <Link
-              href="/"
-              className="flex items-center hover:opacity-80 transition-opacity"
-            >
-              <Home className="h-4 w-4 mr-2" />
-              <span>Home</span>
-            </Link>
+          {/* Nav */}
+          <nav className="flex items-center gap-1">
+            <NavLink href="/" icon={<Flame size={14} />} label="Discover" />
+            <NavLink
+              href="/leaderboard"
+              icon={<Trophy size={14} />}
+              label="Leaderboard"
+              accent
+            />
+            <NavLink href="/token" icon={<Zap size={14} />} label="Tokens" />
 
-            <Link
-              href="/token"
-              className="flex items-center hover:opacity-80 transition-opacity"
-            >
-              <Coins className="h-4 w-4 mr-2" />
-              <span>Tokens</span>
-            </Link>
-
-            <Link
-              href="/trade"
-              className="flex items-center hover:opacity-80 transition-opacity"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              <span>Swap</span>
-            </Link>
-
-            {ready && authenticated ? (
-              mainUsername ? (
-                <div className="flex items-center relative" ref={dropdownRef}>
-                  <div className="relative">
+            {/* Auth section */}
+            <div className="ml-2 flex items-center gap-2">
+              {ready && authenticated ? (
+                mainUsername ? (
+                  <div className="relative" ref={dropdownRef}>
                     <Button
                       variant="ghost"
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="space-x-2"
+                      className="flex items-center gap-2 h-8 px-3 rounded-lg border border-zinc-800 hover:border-purple-600/50 transition-all text-sm"
                     >
-                      <p className="truncate font-bold">{mainUsername}</p>
-                      <Menu size={20} />
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-[10px] font-black">
+                        {mainUsername[0].toUpperCase()}
+                      </div>
+                      <span className="font-semibold text-xs max-w-[80px] truncate">
+                        {mainUsername}
+                      </span>
+                      <Menu size={12} className="text-zinc-500" />
                     </Button>
+
                     {isDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-gray-800 shadow-lg rounded-md overflow-hidden z-50">
-                        <div className="border-b border-muted-light">
-                          <Button
-                            variant="ghost"
-                            className="px-4 py-2 hover:bg-muted-light w-full"
+                      <div
+                        className="absolute right-0 mt-2 w-52 rounded-xl border border-zinc-800 overflow-hidden z-50"
+                        style={{
+                          background: 'rgba(18,18,24,0.98)',
+                          backdropFilter: 'blur(12px)',
+                          boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+                        }}
+                      >
+                        <div className="border-b border-zinc-800">
+                          <button
+                            type="button"
+                            className="w-full px-4 py-2.5 text-left text-xs text-zinc-400 hover:bg-zinc-800/50 flex items-center gap-2 transition-colors"
                             onClick={() => handleCopy(walletAddress)}
                           >
                             {copied ? (
-                              <Check size={16} className="mr-2" />
+                              <Check size={13} className="text-emerald-400" />
                             ) : (
-                              <Clipboard size={16} className="mr-2" />
+                              <Clipboard size={13} />
                             )}
-                            {abbreviateWalletAddress({
-                              address: walletAddress,
-                            })}
-                          </Button>
+                            {abbreviateWalletAddress({ address: walletAddress })}
+                          </button>
                         </div>
-
-                        <Button
-                          variant="ghost"
+                        <button
+                          type="button"
+                          className="w-full px-4 py-2.5 text-left text-xs text-zinc-300 hover:bg-zinc-800/50 flex items-center gap-2 transition-colors"
                           onClick={() => {
                             router.push(`/${mainUsername}`)
                             setIsDropdownOpen(false)
                           }}
-                          className="px-4 py-2 hover:bg-muted-light w-full"
                         >
-                          <User size={16} className="mr-2" /> My Profile
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          className="px-4 py-2 hover:bg-muted-light w-full !text-red-500"
+                          <User size={13} />
+                          My Profile
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full px-4 py-2.5 text-left text-xs text-red-400 hover:bg-zinc-800/50 flex items-center gap-2 transition-colors"
                           onClick={logout}
                         >
-                          <LogOut size={16} className="mr-2" /> Log Out
-                        </Button>
+                          <LogOut size={13} />
+                          Log Out
+                        </button>
                       </div>
                     )}
                   </div>
-                </div>
+                ) : (
+                  <CreateProfileContainer
+                    setIsProfileCreated={setIsProfileCreated}
+                    setProfileUsername={setProfileUsername}
+                  />
+                )
               ) : (
-                <CreateProfileContainer
-                  setIsProfileCreated={setIsProfileCreated}
-                  setProfileUsername={setProfileUsername}
-                />
-              )
-            ) : (
-              <Button
-                variant="ghost"
-                className='!text-green-500'
-                disabled={disableLogin}
-                onClick={() =>
-                  login({
-                    loginMethods: ['wallet'],
-                    walletChainType: 'ethereum-and-solana',
-                    disableSignup: false,
-                  })
-                }
-              >
-                <LogIn className="h-4 w-4 mr-2" /> Log in
-              </Button>
-            )}
+                <button
+                  type="button"
+                  disabled={disableLogin}
+                  onClick={() =>
+                    login({
+                      loginMethods: ['wallet'],
+                      walletChainType: 'ethereum-and-solana',
+                      disableSignup: false,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-bold transition-all disabled:opacity-40"
+                  style={{
+                    background: 'linear-gradient(135deg, #9333ea, #ec4899)',
+                    boxShadow: '0 0 16px rgba(147,51,234,0.35)',
+                  }}
+                >
+                  <LogIn size={13} />
+                  Connect
+                </button>
+              )}
 
-            <div className="flex items-center gap-2">
               <DialectNotificationComponent />
-              <Link
+
+              <a
                 href="https://github.com/Primitives-xyz/solana-starter-kit"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:opacity-80 flex items-center"
+                className="hover:opacity-70 flex items-center transition-opacity"
               >
                 <Image
-                  width={20}
-                  height={20}
+                  width={18}
+                  height={18}
                   alt="Github link"
                   src="/logos/github-mark.svg"
+                  className="invert opacity-40 hover:opacity-70 transition-opacity"
                 />
-              </Link>
+              </a>
             </div>
           </nav>
         </div>
       </div>
     </>
+  )
+}
+
+// ── Sub-component: nav link ─────────────────────────────────────────
+interface NavLinkProps {
+  href: string
+  icon: React.ReactNode
+  label: string
+  accent?: boolean
+}
+
+function NavLink({ href, icon, label, accent = false }: NavLinkProps) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold transition-all hover:bg-zinc-800/60"
+      style={
+        accent
+          ? {
+              color: '#c084fc',
+            }
+          : { color: '#a1a1aa' }
+      }
+    >
+      {icon}
+      <span className="hidden sm:block">{label}</span>
+    </Link>
   )
 }

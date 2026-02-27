@@ -3,8 +3,10 @@ import { Suspense } from 'react'
 
 export default function TradePage() {
   return (
-    <Suspense>
-      <Swap />
-    </Suspense>
+    <div className="px-4 py-4">
+      <Suspense>
+        <Swap />
+      </Suspense>
+    </div>
   )
 }
