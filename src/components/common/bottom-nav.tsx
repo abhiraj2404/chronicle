@@ -1,14 +1,7 @@
 'use client'
 
-import { useCurrentWallet } from '@/components/auth/hooks/use-current-wallet'
-import { useGetProfiles } from '@/components/auth/hooks/use-get-profiles'
-import {
-  Flame,
-  LayoutGrid,
-  PlusCircle,
-  Trophy,
-  User,
-} from 'lucide-react'
+import { useAuth } from '@/components/auth/auth-provider'
+import { Flame, LayoutGrid, PlusCircle, Trophy, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -21,11 +14,9 @@ interface NavItem {
 
 export function BottomNav() {
   const pathname = usePathname()
-  const { walletAddress } = useCurrentWallet()
-  const { profiles } = useGetProfiles({ walletAddress: walletAddress || '' })
-  const mainUsername = profiles?.[0]?.profile?.username
+  const { username } = useAuth()
 
-  const profileHref = mainUsername ? `/${mainUsername}` : '/profile'
+  const profileHref = username ? `/${username}` : '/profile'
 
   const navItems: NavItem[] = [
     {
@@ -69,7 +60,8 @@ export function BottomNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 safe-bottom"
       style={{
-        background: 'linear-gradient(180deg, rgba(8,8,16,0.92) 0%, rgba(8,8,16,0.98) 100%)',
+        background:
+          'linear-gradient(180deg, rgba(8,8,16,0.92) 0%, rgba(8,8,16,0.98) 100%)',
         borderTop: '1px solid rgba(255,255,255,0.06)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',

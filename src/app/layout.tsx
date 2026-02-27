@@ -1,3 +1,4 @@
+import { AuthProvider } from '@/components/auth/auth-provider'
 import { BottomNav } from '@/components/common/bottom-nav'
 import { PrivyClientProvider } from '@/components/provider/PrivyClientProvider'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -46,10 +47,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <PrivyClientProvider>
-            <Toaster />
-            {/* Main content area — bottom padding for fixed nav */}
-            <main className="pb-[72px]">{children}</main>
-            <BottomNav />
+            <AuthProvider>
+              <Toaster />
+              {/* Main content area — bottom padding for fixed nav */}
+              <main className="pb-[72px]">{children}</main>
+              <BottomNav />
+            </AuthProvider>
           </PrivyClientProvider>
         </ThemeProvider>
       </body>

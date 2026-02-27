@@ -1,60 +1,43 @@
 'use client'
 
-import { useCurrentWallet } from '@/components/auth/hooks/use-current-wallet'
-import { useGetProfiles } from '@/components/auth/hooks/use-get-profiles'
-import { ProfileContent } from '@/components/profile/profile-content'
-import { createProfileAfterLogin } from '@/lib/create-profile-after-login'
-import { useLogin, usePrivy } from '@privy-io/react-auth'
+import { useAuth } from '@/components/auth/auth-provider'
+import { useLoginWithOAuth, usePrivy } from '@privy-io/react-auth'
 import { motion } from 'framer-motion'
 import { LogIn, Shield, Star, Trophy, User, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
+/**
+ * /profile — Login page.
+ *
+ * If the user is already authenticated and has a resolved username,
+ * they get redirected to /username by the AuthProvider.
+ * This page only shows the "Sign in with Google" UI.
+ */
 export default function ProfilePage() {
-  const { walletAddress } = useCurrentWallet()
-  const { profiles, loading } = useGetProfiles({
-    walletAddress: walletAddress || '',
-  })
-  const mainUsername = profiles?.[0]?.profile?.username
-  const { ready, authenticated, user } = usePrivy()
-  const { login } = useLogin()
+  const { ready } = usePrivy()
+  const { initOAuth, state: oauthState } = useLoginWithOAuth()
+  const { isAuthenticated, username, isResolvingAuth } = useAuth()
   const router = useRouter()
-  const creatingRef = useRef(false)
 
-  // Auto-create Tapestry profile when user is authenticated + wallet ready + no profile yet
+  // If already fully resolved, redirect (belt-and-suspenders alongside AuthProvider)
   useEffect(() => {
-    if (
-      authenticated &&
-      walletAddress &&
-      !loading &&
-      profiles &&
-      profiles.length === 0 &&
-      !creatingRef.current
-    ) {
-      creatingRef.current = true
-      createProfileAfterLogin(walletAddress, user?.google?.name).then(() => {
-        window.location.reload()
-      })
+    if (isAuthenticated && username && !isResolvingAuth) {
+      router.replace(`/${username}`)
     }
-  }, [authenticated, walletAddress, loading, profiles, user])
+  }, [isAuthenticated, username, isResolvingAuth, router])
 
-  // If user is logged in and has a profile, redirect to their profile page
-  useEffect(() => {
-    if (mainUsername) {
-      router.replace(`/${mainUsername}`)
-    }
-  }, [mainUsername, router])
-
-  // Authenticated but no profile yet — show profile content with wallet address
-  if (ready && authenticated && walletAddress && !mainUsername) {
-    return (
-      <div className="px-4 py-4">
-        <ProfileContent username={walletAddress} />
-      </div>
-    )
+  // While Privy is loading, show nothing briefly
+  if (!ready) {
+    return null
   }
 
-  // Not authenticated — show connect wallet screen
+  // If authenticated and still resolving profile, AuthProvider shows its loading overlay
+  if (isAuthenticated && (isResolvingAuth || !username)) {
+    return null
+  }
+
+  // ── Not authenticated — sign-in screen ──────────────────────────────────
   return (
     <div
       className="flex flex-col items-center justify-center px-6 gap-6"
@@ -98,7 +81,7 @@ export default function ProfilePage() {
       >
         <h1 className="text-2xl font-black text-white">Your Profile</h1>
         <p className="text-sm text-zinc-500 max-w-[260px]">
-          Connect your wallet to start building your on-chain reputation
+          Sign in with Google to start building your on-chain reputation
         </p>
       </motion.div>
 
@@ -139,14 +122,14 @@ export default function ProfilePage() {
         ))}
       </motion.div>
 
-      {/* Connect button */}
+      {/* Sign in button */}
       <motion.button
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4 }}
         whileTap={{ scale: 0.96 }}
-        onClick={() => login()}
-        disabled={!ready}
+        onClick={() => initOAuth({ provider: 'google' })}
+        disabled={!ready || oauthState.status === 'loading'}
         className="w-full max-w-[320px] flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white transition-all disabled:opacity-40"
         style={{
           background: 'linear-gradient(135deg, #16a34a, #22c55e)',
@@ -154,7 +137,7 @@ export default function ProfilePage() {
         }}
       >
         <LogIn size={16} />
-        Connect Wallet
+        Sign in with Google
       </motion.button>
     </div>
   )
