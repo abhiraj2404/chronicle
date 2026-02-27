@@ -13,12 +13,17 @@ export const createTapestryPost = async ({
     body: string;
 }) => {
     try {
-        const response = await socialfi.contents.contentsCreate({
-            apiKey: process.env.TAPESTRY_API_KEY || '',
-            walletAddress,
-            namespace: namespace || 'chronicle',
-            body,
-        });
+        const response = await socialfi.contents.findOrCreateCreate(
+            { apiKey: process.env.TAPESTRY_API_KEY || '' },
+            {
+                id: Date.now().toString(), // Generating a unique ID for the content
+                profileId: walletAddress,
+                properties: [
+                    { key: 'body', value: body },
+                    { key: 'namespace', value: namespace || 'chronicle' },
+                ],
+            }
+        );
         return response;
     } catch (error: any) {
         throw new Error(error.message || 'Failed to create Tapestry post');
@@ -36,11 +41,10 @@ export const likeTapestryPost = async ({
     contentId: string;
 }) => {
     try {
-        const response = await socialfi.likes.likesCreate({
-            apiKey: process.env.TAPESTRY_API_KEY || '',
-            walletAddress,
-            contentId,
-        });
+        const response = await socialfi.likes.likesCreate(
+            { apiKey: process.env.TAPESTRY_API_KEY || '', nodeId: contentId },
+            { startId: walletAddress }
+        );
         return response;
     } catch (error: any) {
         throw new Error(error.message || 'Failed to like Tapestry post');

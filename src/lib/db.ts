@@ -11,11 +11,11 @@ This prevents connections growing exponentially
   during api route usage.
  */
 
-// @ts-ignore
+// @ts-expect-error: Global object manipulation for mongoose caching
 let cached = global.mongoose;
 
 if (!cached) {
-  // @ts-ignore
+  // @ts-expect-error: Global object manipulation for mongoose caching
   cached = global.mongoose = { conn: null, promise: null };
 }
 

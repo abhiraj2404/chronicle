@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db';
 import { Post } from '@/models/Post';
+import { Swipe } from '@/models/Swipe';
 import { createTapestryPost } from '@/lib/tapestry-posts';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
                 body: caption, // In a real app we might combine caption and contentUrl
             });
             // The exact response shape depends on SocialFi SDK, assuming it returns an ID
-            tapestryContentId = tapestryRes?.id || tapestryRes?.data?.id || '';
+            tapestryContentId = tapestryRes?.id || '';
         } catch (e: any) {
             console.warn('Failed to mirror post to Tapestry:', e.message);
             // We can decide to either fail the whole request or proceed without Tapestry ID
@@ -59,16 +60,10 @@ export async function GET(req: NextRequest) {
 
         await connectDB();
 
-        // Strategy to avoid showing posts user already swiped on
         let filter = {};
         if (walletAddress) {
             // Find all post IDs this user has already swiped on
-            const mongoose = require('mongoose');
-            const { Swipe } = require('@/models/Swipe');
-            // Require is used to avoid circular deps if they happen, otherwise standard import
-            const SwipeModel = mongoose.models.Swipe || Swipe;
-
-            const userSwipes = await SwipeModel.find({ swiperWallet: walletAddress }).select('postId');
+            const userSwipes = await Swipe.find({ swiperWallet: walletAddress }).select('postId');
             const swipedPostIds = userSwipes.map((swipe: any) => swipe.postId);
 
             filter = { _id: { $nin: swipedPostIds } };
