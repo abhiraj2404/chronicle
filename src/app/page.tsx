@@ -776,19 +776,21 @@ export default function FeedPage() {
                 <div className="flex bg-[#121824] p-1.5 rounded-2xl border border-white/5">
                   <button
                     onClick={() => setAmountMode('default')}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'default'
-                      ? 'bg-zinc-800 text-white shadow-lg'
-                      : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                      }`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
+                      amountMode === 'default'
+                        ? 'bg-zinc-800 text-white shadow-lg'
+                        : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                    }`}
                   >
                     Default ({DEFAULT_BUY_SOL} SOL)
                   </button>
                   <button
                     onClick={() => setAmountMode('custom')}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'custom'
-                      ? 'bg-zinc-800 text-white shadow-lg'
-                      : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                      }`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
+                      amountMode === 'custom'
+                        ? 'bg-zinc-800 text-white shadow-lg'
+                        : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                    }`}
                   >
                     Custom
                   </button>
