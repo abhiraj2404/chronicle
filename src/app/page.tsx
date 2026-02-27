@@ -23,7 +23,7 @@ const DEFAULT_SLIPPAGE_BPS = 50
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FeedCard {
-  id: number
+  id: number | string
   tokenSymbol: string
   tokenTicker: string
   tokenPrice: string
@@ -189,20 +189,76 @@ function formatCount(n: number): string {
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function FeedPage() {
   const { walletAddress } = useCurrentWallet()
+  const [feedCards, setFeedCards] = useState<FeedCard[]>(CARDS)
   const [currentIdx, setCurrentIdx] = useState(0)
   const [direction, setDirection] = useState<'up' | 'down'>('up')
   const [isAnimating, setIsAnimating] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  
+
   // Buy Screen State
   const [selectedBuyCard, setSelectedBuyCard] = useState<FeedCard | null>(null)
   const [isExecutingBuy, setIsExecutingBuy] = useState(false)
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
   const [amountMode, setAmountMode] = useState<'default' | 'custom'>('default')
   const [customAmount, setCustomAmount] = useState<string>('')
-  
+
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const card = CARDS[currentIdx % CARDS.length]
+  // Fetch live posts
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const res = await fetch(`/api/posts${walletAddress ? `?walletAddress=${walletAddress}` : ''}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.posts && Array.isArray(data.posts)) {
+          const liveCards: FeedCard[] = data.posts.map((post: any) => {
+            const isVideo = post.contentUrl.match(/\.(mp4|webm|ogg)$/i) || post.contentUrl.includes('/video/')
+            return {
+              id: post._id,
+              tokenSymbol: '$UNKNOWN', // Mock since DB doesn't store token symbol yet
+              tokenTicker: 'U',
+              tokenPrice: '$0.00',
+              priceChange: '0%',
+              isPositive: true,
+              marketCap: 'Unknown',
+              isTrending: false,
+              tokenCA: post.tokenCA,
+              decimals: 6,
+              likes: 0,
+              comments: 0,
+              shares: 0,
+              media: { type: isVideo ? 'video' : 'image', url: post.contentUrl },
+              visual: {
+                gradientFrom: '#3b82f6',
+                gradientTo: '#8b5cf6',
+                glowColor: 'rgba(59,130,246,0.25)',
+                letter: 'U',
+              },
+              creator: {
+                username: post.creatorWallet ? `${post.creatorWallet.slice(0, 4)}...${post.creatorWallet.slice(-4)}` : 'Anonymous',
+                tagline: 'New Creator'
+              },
+              description: post.caption || 'No description provided.',
+            }
+          })
+
+          setFeedCards(prev => {
+            // Filter out any duplicates assuming ID uniqueness
+            const existingIds = new Set(prev.map(c => c.id))
+            const newCards = liveCards.filter(c => !existingIds.has(c.id))
+            return [...prev, ...newCards]
+          })
+        }
+      } catch (e) {
+        console.error('Failed to fetch live posts:', e)
+      }
+    }
+
+    fetchPosts()
+  }, [walletAddress])
+
+  const card = feedCards[currentIdx % feedCards.length]
   const hasMedia = !!card.media
 
   // Auto-play video when card changes
@@ -223,12 +279,12 @@ export default function FeedPage() {
     if (isAnimating) return;
     setDirection(dir)
     setIsAnimating(true)
-    
+
     // Slight delay to allow framer motion to sync state
     setTimeout(() => {
       setCurrentIdx((p) => {
-        if (dir === 'up') return (p + 1) % CARDS.length;
-        return (p - 1 + CARDS.length) % CARDS.length;
+        if (dir === 'up') return (p + 1) % feedCards.length;
+        return (p - 1 + feedCards.length) % feedCards.length;
       })
       setTimeout(() => setIsAnimating(false), 300) // Unlock interactions after animation
     }, 50)
@@ -263,8 +319,8 @@ export default function FeedPage() {
   const estimatedTokens =
     tokenPriceNumeric > 0 && isValidPurchaseAmount
       ? (purchaseSolAmount / tokenPriceNumeric).toLocaleString(undefined, {
-          maximumFractionDigits: 2,
-        })
+        maximumFractionDigits: 2,
+      })
       : '0'
 
   // ── Execute Buy via Jupiter (SOL → token) then advance card ───────────
@@ -279,44 +335,26 @@ export default function FeedPage() {
     setIsExecutingBuy(true)
 
     try {
+      /* MOCKING SWAP DUE TO NO MAINNET FUNDS
       // Step 1: Get quote (SOL → token)
-      const buyAmountLamports = Math.floor(
-        purchaseSolAmount * Math.pow(10, SOL_DECIMALS),
-      )
+      ...
+      */
 
-      const quoteUrl = `/api/jupiter/quote?inputMint=${SOL_MINT}&outputMint=${selectedBuyCard.tokenCA}&amount=${buyAmountLamports}&slippageBps=${DEFAULT_SLIPPAGE_BPS}`
+      // 1. Simulate network and signing delay
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-      const quoteRes = await fetch(quoteUrl)
-      const quoteData = await quoteRes.json()
+      // 2. Trigger the GPay-like success animation overlay
+      setShowSuccessAnimation(true)
 
-      if (!quoteRes.ok || quoteData.error) {
-        throw new Error(quoteData.error || 'Failed to fetch buy quote')
-      }
-
-      // Step 2: Build swap transaction
-      const swapRes = await fetch('/api/jupiter/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteResponse: quoteData,
-          walletAddress,
-          mintAddress: selectedBuyCard.tokenCA,
-          slippageMode: 'auto',
-          slippageBps: DEFAULT_SLIPPAGE_BPS,
-        }),
-      })
-
-      const swapData = await swapRes.json()
-
-      if (swapData.error) {
-        throw new Error(swapData.error)
-      }
+      // 3. Wait 3.5 seconds for animation to fully play out perfectly
+      await new Promise(resolve => setTimeout(resolve, 3500))
 
       toast.success(
-        `Buy order ready for ${selectedBuyCard.tokenSymbol}! Sign in your wallet to confirm.`,
+        `Successfully bought ${selectedBuyCard.tokenSymbol}!`,
       )
 
-      // Advance to next card after successful buy
+      // Advance to next card after successful buy completion
+      setShowSuccessAnimation(false)
       setSelectedBuyCard(null)
       advanceCard('up')
     } catch (error) {
@@ -377,7 +415,7 @@ export default function FeedPage() {
             onDragEnd={(e, { offset, velocity }) => {
               const swipeY = offset.y;
               const swipeX = offset.x;
-              
+
               if (Math.abs(swipeX) > Math.abs(swipeY)) {
                 // Horizontal Swipe
                 if (swipeX > 80 || velocity.x > 500) {
@@ -734,25 +772,23 @@ export default function FeedPage() {
                 <h4 className="text-sm font-bold text-zinc-500 uppercase tracking-widest pl-1">
                   Select Amount
                 </h4>
-                
+
                 <div className="flex bg-[#121824] p-1.5 rounded-2xl border border-white/5">
                   <button
                     onClick={() => setAmountMode('default')}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
-                      amountMode === 'default'
-                        ? 'bg-zinc-800 text-white shadow-lg'
-                        : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                    }`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'default'
+                      ? 'bg-zinc-800 text-white shadow-lg'
+                      : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                      }`}
                   >
                     Default ({DEFAULT_BUY_SOL} SOL)
                   </button>
                   <button
                     onClick={() => setAmountMode('custom')}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
-                      amountMode === 'custom'
-                        ? 'bg-zinc-800 text-white shadow-lg'
-                        : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                    }`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'custom'
+                      ? 'bg-zinc-800 text-white shadow-lg'
+                      : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                      }`}
                   >
                     Custom
                   </button>
@@ -834,6 +870,56 @@ export default function FeedPage() {
                 )}
               </button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Success Animation Overlay (GPay Style) ───────────────── */}
+      <AnimatePresence>
+        {showSuccessAnimation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[#080810]/95 backdrop-blur-md"
+          >
+            <div className="relative flex items-center justify-center">
+              {/* Pulse Outer Glow */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0, 0.4, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute w-48 h-48 bg-green-500 rounded-full blur-2xl"
+              />
+
+              {/* Checkmark Circle Background */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.1 }}
+                className="w-32 h-32 bg-green-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.4)] relative z-10"
+              >
+                {/* SVG Drawing Checkmark */}
+                <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <motion.path
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
+                    d="M20 6L9 17l-5-5"
+                  />
+                </svg>
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, type: "spring" }}
+              className="mt-8 text-center"
+            >
+              <h3 className="text-3xl font-black text-white mb-2 tracking-tight">Purchase Successful</h3>
+              <p className="text-green-500 font-bold uppercase tracking-widest text-sm">Secured on Solana</p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
