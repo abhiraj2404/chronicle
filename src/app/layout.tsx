@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: 'MEMEX — Tinder for Memecoins',
   description:
     'Swipe on memecoin pitches, auto-buy your favourites, and follow top on-chain callers.',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

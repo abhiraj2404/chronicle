@@ -1,7 +1,7 @@
 'use client'
 
 import { useCurrentWallet } from '@/components/auth/hooks/use-current-wallet'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/custom-button/button'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
