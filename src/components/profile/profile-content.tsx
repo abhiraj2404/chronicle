@@ -1,82 +1,134 @@
 'use client'
 
+import { useAuth } from '@/components/auth/auth-provider'
+import { Comments } from '@/components/profile/comments/comments'
+import { FollowList } from '@/components/profile/follow-list'
+import { DisplaySuggestedAndGlobal } from '@/components/suggested-and-creators-invite/hooks/display-suggested-and-global'
+import { useGetProfileInfo } from '@/components/profile/hooks/use-get-profile-info'
+import type { IGetSocialResponse } from '@/models/profile.models'
+import { PublicKey } from '@solana/web3.js'
 import { motion } from 'framer-motion'
 import {
-  ArrowUpRight,
+  BarChart2,
   ChevronLeft,
-  Heart,
-  MessageCircle,
+  ImageIcon,
+  LogOut,
+  User,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { PortfolioView } from './portfolio-view'
 
 interface Props {
   username: string
 }
 
-const MOCK_PROFILE = {
-  displayName: 'Degen Scholar',
-  username: '@degenscholar',
-  bio: 'Exploring the frontier of Layer 2s and DeFi primitives. Early backer of $SWIPE and $PEPE3.',
-  followers: '0',
-  following: '0',
-  postsCount: '3',
-  avatarGradient: 'linear-gradient(135deg, #10b981, #047857)',
-  coverGradient: 'linear-gradient(180deg, #064e3b 0%, #022c22 100%)',
-}
+type Tab = 'profile' | 'portfolio' | 'nfts'
 
-const MOCK_POSTS = [
-  {
-    id: 1,
-    timeAgo: '2h ago',
-    content: 'Just grabbed a heavy bag of $SWIPE. The new L2 sequencer changes everything.',
-    token: '$SWIPE',
-    performance: '+142%',
-    likes: 342,
-    comments: 45,
-    gradient: 'linear-gradient(135deg, #0d9488, #2dd4bf)',
-  },
-  {
-    id: 2,
-    timeAgo: '5h ago',
-    content: 'If you faded $PEPE3, I don\'t know what to tell you. The easiest 5x of the week.',
-    token: '$PEPE3',
-    performance: '+450%',
-    likes: 892,
-    comments: 120,
-    gradient: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-  },
-  {
-    id: 3,
-    timeAgo: '1d ago',
-    content: 'Rotating capital back into majors. The meme cycle is cooling off for the weekend.',
-    token: '$SOL',
-    performance: '+5%',
-    likes: 124,
-    comments: 12,
-    gradient: 'linear-gradient(135deg, #2563eb, #60a5fa)',
-  },
+const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+  { key: 'profile', label: 'Profile', icon: <User size={14} /> },
+  { key: 'portfolio', label: 'Tokens', icon: <BarChart2 size={14} /> },
+  { key: 'nfts', label: 'NFTs', icon: <ImageIcon size={14} /> },
 ]
 
 export function ProfileContent({ username }: Props) {
   const router = useRouter()
+  const { username: myUsername, signOut, isAuthenticated, walletAddress } = useAuth()
+  
+  // Real Profile logic
+  const isOwnProfile = !!myUsername && myUsername === username
+  const [profileUsername, setProfileUsername] = useState(username)
+  const { data: profileInfo, refetch: refetchProfile } = useGetProfileInfo({ username: profileUsername })
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [followers, setFollowers] = useState<IGetSocialResponse | null>(null)
+  const [following, setFollowing] = useState<IGetSocialResponse | null>(null)
+  const [selectedTab, setSelectedTab] = useState<Tab>('profile')
+
+  useEffect(() => {
+    async function init() {
+      setIsLoading(true)
+      try {
+        let actualUsername = username
+        try {
+          new PublicKey(username)
+          const profilesResponse = await fetch(
+            `/api/profiles?walletAddress=${username}`,
+          )
+          const profiles = await profilesResponse.json()
+          if (profiles && profiles.length > 0) {
+            actualUsername = profiles[0].username
+            setProfileUsername(actualUsername)
+          }
+        } catch {
+          actualUsername = username
+        }
+
+        const [followersRes, followingRes] = await Promise.all([
+          fetch(
+            `/api/followers/list?username=${encodeURIComponent(actualUsername)}`,
+          ),
+          fetch(
+            `/api/following/list?username=${encodeURIComponent(actualUsername)}`,
+          ),
+        ])
+        const followersData = followersRes.ok ? await followersRes.json() : null
+        const followingData = followingRes.ok ? await followingRes.json() : null
+        setFollowers(followersData)
+        setFollowing(followingData)
+      } catch (error) {
+        console.error('Error initializing profile:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    init()
+  }, [username])
+
+  // Special-case wallet
+  useEffect(() => {
+    if (username === '8jTiTDW9ZbMHvAD9SZWvhPfRx5gUgK7HACMdgbFp2tUz') {
+      setProfileUsername('8jTiTDW9ZbMHvAD9SZWvhPfRx5gUgK7HACMdgbFp2tUz')
+      setIsLoading(false)
+    }
+  }, [username])
+
+  // ── Loading ──────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="w-14 h-14 rounded-full animate-pulse"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(20,184,166,0.2))',
+            }}
+          />
+          <div className="h-3 w-28 bg-zinc-800 rounded-full animate-pulse" />
+          <div className="h-2 w-20 bg-zinc-800 rounded-full animate-pulse" />
+        </div>
+      </div>
+    )
+  }
+
+  const MOCK_PROFILE_FALLBACK = {
+    avatarGradient: 'linear-gradient(135deg, #10b981, #047857)',
+    coverGradient: 'linear-gradient(180deg, #064e3b 0%, #022c22 100%)',
+    postsCount: '3' // Optional, kept visually
+  }
 
   return (
     <div
       className="max-w-xl mx-auto min-h-screen text-white pb-24"
-      style={{
-        background: '#04060A', // Ultra dark background
-      }}
+      style={{ background: '#04060A' }}
     >
       {/* ── Header Area ─────────────────────────────────────────── */}
       <div className="relative">
-        {/* Cover Photo */}
         <div
           className="h-48 w-full relative"
-          style={{
-            background: MOCK_PROFILE.coverGradient,
-          }}
+          style={{ background: MOCK_PROFILE_FALLBACK.coverGradient }}
         >
-          {/* Subtle noise grid overlay */}
           <div
              className="absolute inset-0 opacity-20 mix-blend-overlay"
              style={{
@@ -86,7 +138,6 @@ export function ProfileContent({ username }: Props) {
           />
         </div>
 
-        {/* Back Button */}
         <button
           onClick={() => router.back()}
           className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-all z-10"
@@ -94,90 +145,126 @@ export function ProfileContent({ username }: Props) {
           <ChevronLeft size={20} className="text-white" />
         </button>
 
-        {/* Avatar & Info */}
+        {(isOwnProfile || (isAuthenticated && !myUsername)) && (
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 text-red-500 font-bold text-sm border border-red-500/20 hover:bg-red-500/20 transition-all"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
+        )}
+
         <div className="px-6 relative -mt-16">
           <div className="flex justify-between items-end mb-4">
             <div
-              className="w-32 h-32 rounded-3xl border-4 border-[#04060A] flex items-center justify-center shadow-2xl relative"
-              style={{ background: MOCK_PROFILE.avatarGradient }}
+              className="w-32 h-32 rounded-3xl border-4 border-[#04060A] overflow-hidden flex items-center justify-center shadow-2xl relative"
+              style={{ background: MOCK_PROFILE_FALLBACK.avatarGradient }}
             >
-               <span className="text-5xl font-black text-white mix-blend-overlay">D</span>
+               {profileInfo?.profile?.image ? (
+                 <img
+                   src={profileInfo.profile.image}
+                   alt="avatar"
+                   className="w-full h-full object-cover"
+                 />
+               ) : (
+                 <span className="text-5xl font-black text-white mix-blend-overlay">
+                   {profileUsername[0]?.toUpperCase() ?? '?'}
+                 </span>
+               )}
             </div>
             
-            <button className="px-6 py-2.5 rounded-full font-bold text-sm bg-white text-black hover:bg-zinc-200 transition-colors mb-2">
-              Follow
-            </button>
+            {!isOwnProfile && (
+              <button className="px-6 py-2.5 rounded-full font-bold text-sm bg-white text-black hover:bg-zinc-200 transition-colors mb-2">
+                Follow
+              </button>
+            )}
           </div>
 
           <div className="mb-6">
-            <h1 className="text-2xl font-black tracking-tight">{MOCK_PROFILE.displayName}</h1>
-            <p className="text-zinc-500 font-medium">{MOCK_PROFILE.username}</p>
+            <h1 className="text-2xl font-black tracking-tight">{profileInfo?.profile?.username || profileUsername}</h1>
+            <p className="text-zinc-500 font-medium">@{profileUsername}</p>
             <p className="mt-3 text-zinc-300 text-sm leading-relaxed max-w-sm">
-              {MOCK_PROFILE.bio}
+              {profileInfo?.profile?.bio || 'No bio yet.'}
             </p>
           </div>
 
-          {/* Stats */}
           <div className="flex gap-6 border-y border-white/5 py-4 mb-6">
             <div className="flex flex-col">
-              <span className="text-xl font-black">{MOCK_PROFILE.postsCount}</span>
-              <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Posts</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-black">{MOCK_PROFILE.followers}</span>
+              <span className="text-xl font-black">{followers?.profiles?.length || 0}</span>
               <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Followers</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black">{MOCK_PROFILE.following}</span>
+              <span className="text-xl font-black">{following?.profiles?.length || 0}</span>
               <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Following</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Content ─────────────────────────────────────────── */}
       <div className="px-4 flex flex-col gap-4">
-        {MOCK_POSTS.map((post, idx) => (
-          <motion.div
-            key={post.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: idx * 0.1 }}
-            className="bg-[#0C1018] border border-white/5 rounded-3xl p-5"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white"
-                  style={{ background: post.gradient }}
-                >
-                  {post.token[1]}
-                </div>
-                <span className="font-bold text-sm">{post.token}</span>
-              </div>
-              <span className="text-xs text-zinc-500 font-medium">{post.timeAgo}</span>
-            </div>
+        {/* ── Tabs ────────────────────────────────────────────────── */}
+        <div
+          className="rounded-xl p-1 flex gap-1 mb-2"
+          style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          {TABS.map(({ key, label, icon }) => {
+            const active = selectedTab === key
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setSelectedTab(key)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-bold transition-all"
+                style={
+                  active
+                    ? {
+                        background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+                        color: '#fff',
+                        boxShadow: '0 0 12px rgba(34,197,94,0.2)',
+                      }
+                    : { color: '#6b7280' }
+                }
+              >
+                {icon}
+                {label}
+              </button>
+            )
+          })}
+        </div>
 
-            <p className="text-zinc-300 text-sm leading-relaxed mb-4">
-              {post.content}
-            </p>
-
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-1.5 text-zinc-500 hover:text-white transition-colors cursor-pointer">
-                <Heart size={16} />
-                <span className="text-xs font-bold">{post.likes}</span>
+        {/* ── Tab content ─────────────────────────────────────────── */}
+        <motion.div
+          key={selectedTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {selectedTab === 'profile' ? (
+            <>
+              <div className="flex flex-col gap-3">
+                <FollowList
+                  followers={followers || { profiles: [], page: 0, pageSize: 0 }}
+                  following={following || { profiles: [], page: 0, pageSize: 0 }}
+                />
+                <DisplaySuggestedAndGlobal username={profileUsername} />
               </div>
-              <div className="flex items-center gap-1.5 text-zinc-500 hover:text-white transition-colors cursor-pointer">
-                <MessageCircle size={16} />
-                <span className="text-xs font-bold">{post.comments}</span>
+              <div className="mt-3">
+                <Comments username={profileUsername} />
               </div>
-              <div className="flex items-center gap-1.5 text-[#22c55e] ml-auto bg-[#22c55e]/10 px-3 py-1 rounded-full">
-                <ArrowUpRight size={14} />
-                <span className="text-xs font-black">{post.performance}</span>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+            </>
+          ) : (
+            <PortfolioView
+              username={username}
+              initialTokenType={selectedTab === 'nfts' ? 'nft' : 'fungible'}
+            />
+          )}
+        </motion.div>
       </div>
     </div>
   )
