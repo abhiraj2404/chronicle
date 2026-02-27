@@ -3,19 +3,40 @@
 import { useCurrentWallet } from '@/components/auth/hooks/use-current-wallet'
 import { useGetProfiles } from '@/components/auth/hooks/use-get-profiles'
 import { ProfileContent } from '@/components/profile/profile-content'
+import { createProfileAfterLogin } from '@/lib/create-profile-after-login'
 import { useLogin, usePrivy } from '@privy-io/react-auth'
 import { motion } from 'framer-motion'
 import { LogIn, Shield, Star, Trophy, User, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export default function ProfilePage() {
   const { walletAddress } = useCurrentWallet()
-  const { profiles } = useGetProfiles({ walletAddress: walletAddress || '' })
+  const { profiles, loading } = useGetProfiles({
+    walletAddress: walletAddress || '',
+  })
   const mainUsername = profiles?.[0]?.profile?.username
-  const { ready, authenticated } = usePrivy()
+  const { ready, authenticated, user } = usePrivy()
   const { login } = useLogin()
   const router = useRouter()
+  const creatingRef = useRef(false)
+
+  // Auto-create Tapestry profile when user is authenticated + wallet ready + no profile yet
+  useEffect(() => {
+    if (
+      authenticated &&
+      walletAddress &&
+      !loading &&
+      profiles &&
+      profiles.length === 0 &&
+      !creatingRef.current
+    ) {
+      creatingRef.current = true
+      createProfileAfterLogin(walletAddress, user?.google?.name).then(() => {
+        window.location.reload()
+      })
+    }
+  }, [authenticated, walletAddress, loading, profiles, user])
 
   // If user is logged in and has a profile, redirect to their profile page
   useEffect(() => {
@@ -49,7 +70,8 @@ export default function ProfilePage() {
         <div
           className="w-24 h-24 rounded-full flex items-center justify-center"
           style={{
-            background: 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(20,184,166,0.08))',
+            background:
+              'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(20,184,166,0.08))',
             border: '1.5px solid rgba(34,197,94,0.2)',
             boxShadow: '0 0 40px rgba(34,197,94,0.1)',
           }}
@@ -93,7 +115,9 @@ export default function ProfilePage() {
             text: 'Build verifiable reputation as a caller',
           },
           {
-            icon: <Trophy size={14} fill="#22c55e" className="text-green-500" />,
+            icon: (
+              <Trophy size={14} fill="#22c55e" className="text-green-500" />
+            ),
             text: 'Compete for the leaderboard top spot',
           },
           {
@@ -121,13 +145,7 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4 }}
         whileTap={{ scale: 0.96 }}
-        onClick={() =>
-          login({
-            loginMethods: ['wallet'],
-            walletChainType: 'ethereum-and-solana',
-            disableSignup: false,
-          })
-        }
+        onClick={() => login()}
         disabled={!ready}
         className="w-full max-w-[320px] flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white transition-all disabled:opacity-40"
         style={{
