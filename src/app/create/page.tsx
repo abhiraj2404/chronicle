@@ -158,7 +158,7 @@ export default function CreatePostPage() {
 
   return (
     <div
-      className="flex flex-col px-4 pt-3 gap-4 overflow-y-auto no-scrollbar"
+      className="flex flex-col px-4 pt-3 gap-4 overflow-y-auto no-scrollbar max-w-lg mx-auto w-full"
       style={{ height: 'calc(100dvh - 72px)' }}
     >
       {/* ── Header ─────────────────────────────────────────────────── */}

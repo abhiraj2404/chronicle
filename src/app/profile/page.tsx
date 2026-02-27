@@ -1,40 +1,37 @@
 'use client'
 
 import { useAuth } from '@/components/auth/auth-provider'
-import { useLoginWithOAuth, usePrivy } from '@privy-io/react-auth'
+import { usePrivy } from '@privy-io/react-auth'
 import { motion } from 'framer-motion'
 import { LogIn, Shield, Star, Trophy, User, Zap } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { ProfileContent } from '@/components/profile/profile-content'
 
-/**
- * /profile — Login page.
- *
- * If the user is already authenticated and has a resolved username,
- * they get redirected to /username by the AuthProvider.
- * This page only shows the "Sign in with Google" UI.
- */
 export default function ProfilePage() {
-  const { ready } = usePrivy()
-  const { initOAuth, state: oauthState } = useLoginWithOAuth()
-  const { isAuthenticated, username, isResolvingAuth } = useAuth()
-  const router = useRouter()
-
-  // If already fully resolved, redirect (belt-and-suspenders alongside AuthProvider)
-  useEffect(() => {
-    if (isAuthenticated && username && !isResolvingAuth) {
-      router.replace(`/${username}`)
-    }
-  }, [isAuthenticated, username, isResolvingAuth, router])
+  const { ready, login } = usePrivy()
+  const { isAuthenticated, username, walletAddress } = useAuth()
 
   // While Privy is loading, show nothing briefly
   if (!ready) {
     return null
   }
 
-  // If authenticated and still resolving profile, AuthProvider shows its loading overlay
-  if (isAuthenticated && (isResolvingAuth || !username)) {
-    return null
+  // If authenticated, just show the profile right here!
+  if (isAuthenticated) {
+    // If username is not resolved yet, we can fallback to walletAddress
+    const resolvedUsername = username || walletAddress
+    if (!resolvedUsername) {
+      return (
+        <div className="flex items-center justify-center min-h-screen text-white">
+          <div className="animate-pulse">Loading Profile...</div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="px-4 py-4">
+        <ProfileContent username={resolvedUsername} />
+      </div>
+    )
   }
 
   // ── Not authenticated — sign-in screen ──────────────────────────────────
@@ -79,9 +76,9 @@ export default function ProfilePage() {
         transition={{ delay: 0.1, duration: 0.4 }}
         className="text-center space-y-2"
       >
-        <h1 className="text-2xl font-black text-white">Your Profile</h1>
+        <h1 className="text-2xl font-black text-white">Connect Wallet</h1>
         <p className="text-sm text-zinc-500 max-w-[260px]">
-          Sign in with Google to start building your on-chain reputation
+          Connect your wallet to start building your on-chain reputation
         </p>
       </motion.div>
 
@@ -122,14 +119,14 @@ export default function ProfilePage() {
         ))}
       </motion.div>
 
-      {/* Sign in button */}
+      {/* Connect Wallet button */}
       <motion.button
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4 }}
         whileTap={{ scale: 0.96 }}
-        onClick={() => initOAuth({ provider: 'google' })}
-        disabled={!ready || oauthState.status === 'loading'}
+        onClick={() => login()}
+        disabled={!ready}
         className="w-full max-w-[320px] flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white transition-all disabled:opacity-40"
         style={{
           background: 'linear-gradient(135deg, #16a34a, #22c55e)',
@@ -137,7 +134,7 @@ export default function ProfilePage() {
         }}
       >
         <LogIn size={16} />
-        Sign in with Google
+        Connect Wallet
       </motion.button>
     </div>
   )

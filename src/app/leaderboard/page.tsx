@@ -150,7 +150,7 @@ export default function LeaderboardPage() {
 
   return (
     <div
-      className="flex flex-col px-4 pt-4 pb-4 gap-5 no-scrollbar overflow-y-auto"
+      className="flex flex-col px-4 pt-4 pb-4 gap-5 no-scrollbar overflow-y-auto max-w-lg mx-auto w-full"
       style={{ minHeight: 'calc(100dvh - 72px)' }}
     >
       {/* ── Header ─────────────────────────────────────────────── */}
