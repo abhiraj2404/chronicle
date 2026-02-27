@@ -8,8 +8,10 @@ import {
   Heart,
   MessageCircle,
   Share2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FeedCard {
@@ -24,6 +26,11 @@ interface FeedCard {
   likes: number
   comments: number
   shares: number
+  /** Optional video/image media for immersive background */
+  media?: {
+    type: 'video' | 'image'
+    url: string
+  }
   /* Visual theme for each card */
   visual: {
     gradientFrom: string
@@ -51,6 +58,7 @@ const CARDS: FeedCard[] = [
     likes: 12400,
     comments: 842,
     shares: 231,
+    media: { type: 'video', url: '/assets/vid-1.mp4' },
     visual: {
       gradientFrom: '#0d9488',
       gradientTo: '#2dd4bf',
@@ -71,6 +79,7 @@ const CARDS: FeedCard[] = [
     likes: 8900,
     comments: 1200,
     shares: 540,
+    media: { type: 'video', url: '/assets/vid-2.mp4' },
     visual: {
       gradientFrom: '#7c3aed',
       gradientTo: '#a78bfa',
@@ -91,6 +100,7 @@ const CARDS: FeedCard[] = [
     likes: 24300,
     comments: 3100,
     shares: 890,
+    media: { type: 'video', url: '/assets/vid-3.mp4' },
     visual: {
       gradientFrom: '#d97706',
       gradientTo: '#fbbf24',
@@ -111,6 +121,7 @@ const CARDS: FeedCard[] = [
     likes: 6200,
     comments: 490,
     shares: 310,
+    media: { type: 'video', url: '/assets/vid-2.mp4' },
     visual: {
       gradientFrom: '#2563eb',
       gradientTo: '#60a5fa',
@@ -131,6 +142,7 @@ const CARDS: FeedCard[] = [
     likes: 15700,
     comments: 2200,
     shares: 670,
+    media: { type: 'video', url: '/assets/vid-3.mp4' },
     visual: {
       gradientFrom: '#059669',
       gradientTo: '#34d399',
@@ -151,8 +163,25 @@ function formatCount(n: number): string {
 export default function FeedPage() {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [exitDir, setExitDir] = useState<'left' | 'right' | null>(null)
+  const [isMuted, setIsMuted] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   const card = CARDS[currentIdx % CARDS.length]
+  const hasMedia = !!card.media
+
+  // Auto-play video when card changes
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.currentTime = 0
+    video.play().catch(() => {
+      /* autoplay blocked — user must interact first */
+    })
+  }, [currentIdx])
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => !prev)
+  }, [])
 
   const handleSwipe = (dir: 'left' | 'right') => {
     if (exitDir) return
@@ -187,112 +216,170 @@ export default function FeedPage() {
               transition: { duration: 0.32, ease: 'easeOut' },
             }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="absolute inset-0 rounded-[20px] overflow-hidden flex flex-col card-glow"
+            className="absolute inset-0 rounded-[20px] overflow-hidden card-glow"
             style={{
               background: `linear-gradient(180deg, #0c1018 0%, #080810 100%)`,
               border: '1.5px solid rgba(56,189,248,0.15)',
             }}
           >
-            {/* ── Token visual (top ~65%) ─────────────────────────── */}
-            <div className="relative flex-1 flex items-center justify-center overflow-hidden">
-              {/* Ambient glow */}
+            {/* ── Full-bleed media background ────────────────────── */}
+            {hasMedia && card.media?.type === 'video' && (
+              <video
+                ref={videoRef}
+                src={card.media.url}
+                muted={isMuted}
+                loop
+                playsInline
+                autoPlay
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+
+            {hasMedia && card.media?.type === 'image' && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={card.media.url}
+                alt={card.tokenSymbol}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+
+            {/* Dark gradient overlay so text stays readable */}
+            {hasMedia && (
               <div
-                className="absolute w-[280px] h-[280px] rounded-full blur-3xl opacity-40"
+                className="absolute inset-0 pointer-events-none z-[1]"
                 style={{
-                  background: `radial-gradient(circle, ${card.visual.glowColor} 0%, transparent 70%)`,
+                  background:
+                    'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 30%, rgba(8,8,16,0.75) 75%, rgba(8,8,16,0.95) 100%)',
                 }}
               />
+            )}
 
-              {/* 3D-style crystal block */}
-              <div className="relative float-anim">
-                {/* Back face */}
+            {/* ── Fallback: crystal block (when no media) ────────── */}
+            {!hasMedia && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                {/* Ambient glow */}
                 <div
-                  className="absolute -top-3 left-3 w-[140px] h-[140px] rounded-2xl opacity-40"
+                  className="absolute w-[280px] h-[280px] rounded-full blur-3xl opacity-40"
                   style={{
-                    background: `linear-gradient(135deg, ${card.visual.gradientFrom}, ${card.visual.gradientTo})`,
-                    transform: 'rotate(12deg)',
+                    background: `radial-gradient(circle, ${card.visual.glowColor} 0%, transparent 70%)`,
                   }}
                 />
-                {/* Main face */}
-                <div
-                  className="relative w-[140px] h-[140px] rounded-2xl flex items-center justify-center"
-                  style={{
-                    background: `linear-gradient(150deg, ${card.visual.gradientFrom}, ${card.visual.gradientTo})`,
-                    transform: 'rotate(12deg)',
-                    boxShadow: `0 20px 60px ${card.visual.glowColor}, inset 0 1px 0 rgba(255,255,255,0.15)`,
-                  }}
-                >
-                  <span
-                    className="text-6xl font-black text-white/20"
-                    style={{ transform: 'rotate(-12deg)' }}
+
+                {/* 3D-style crystal block */}
+                <div className="relative float-anim">
+                  {/* Back face */}
+                  <div
+                    className="absolute -top-3 left-3 w-[140px] h-[140px] rounded-2xl opacity-40"
+                    style={{
+                      background: `linear-gradient(135deg, ${card.visual.gradientFrom}, ${card.visual.gradientTo})`,
+                      transform: 'rotate(12deg)',
+                    }}
+                  />
+                  {/* Main face */}
+                  <div
+                    className="relative w-[140px] h-[140px] rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: `linear-gradient(150deg, ${card.visual.gradientFrom}, ${card.visual.gradientTo})`,
+                      transform: 'rotate(12deg)',
+                      boxShadow: `0 20px 60px ${card.visual.glowColor}, inset 0 1px 0 rgba(255,255,255,0.15)`,
+                    }}
                   >
-                    {card.visual.letter}
-                  </span>
+                    <span
+                      className="text-6xl font-black text-white/20"
+                      style={{ transform: 'rotate(-12deg)' }}
+                    >
+                      {card.visual.letter}
+                    </span>
+                  </div>
+                  {/* Bottom face (depth) */}
+                  <div
+                    className="absolute top-3 -left-2 w-[140px] h-[140px] rounded-2xl opacity-20"
+                    style={{
+                      background: card.visual.gradientFrom,
+                      transform: 'rotate(12deg)',
+                    }}
+                  />
                 </div>
-                {/* Bottom face (depth) */}
+              </div>
+            )}
+
+            {/* ── Right-side action buttons (TikTok-style) ──────── */}
+            <div className="absolute right-3 bottom-[140px] flex flex-col items-center gap-5 z-10">
+              {/* Mute/Unmute toggle (only for video cards) */}
+              {card.media?.type === 'video' && (
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
+                  >
+                    {isMuted ? (
+                      <VolumeX size={18} className="text-white" />
+                    ) : (
+                      <Volume2 size={18} className="text-white" />
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-white/70">
+                    {isMuted ? 'Unmute' : 'Mute'}
+                  </span>
+                </button>
+              )}
+
+              {/* Likes */}
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1"
+              >
                 <div
-                  className="absolute top-3 -left-2 w-[140px] h-[140px] rounded-2xl opacity-20"
-                  style={{
-                    background: card.visual.gradientFrom,
-                    transform: 'rotate(12deg)',
-                  }}
-                />
-              </div>
-
-              {/* ── Right-side action buttons (TikTok-style) ──── */}
-              <div className="absolute right-3 bottom-4 flex flex-col items-center gap-5">
-                {/* Likes */}
-                <button
-                  type="button"
-                  className="flex flex-col items-center gap-1"
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
                 >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(255,255,255,0.08)' }}
-                  >
-                    <Heart size={20} className="text-white" />
-                  </div>
-                  <span className="text-[10px] font-bold text-white/70">
-                    {formatCount(card.likes)}
-                  </span>
-                </button>
+                  <Heart size={20} className="text-white" />
+                </div>
+                <span className="text-[10px] font-bold text-white/70">
+                  {formatCount(card.likes)}
+                </span>
+              </button>
 
-                {/* Comments */}
-                <button
-                  type="button"
-                  className="flex flex-col items-center gap-1"
+              {/* Comments */}
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
                 >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(255,255,255,0.08)' }}
-                  >
-                    <MessageCircle size={20} className="text-white" />
-                  </div>
-                  <span className="text-[10px] font-bold text-white/70">
-                    {formatCount(card.comments)}
-                  </span>
-                </button>
+                  <MessageCircle size={20} className="text-white" />
+                </div>
+                <span className="text-[10px] font-bold text-white/70">
+                  {formatCount(card.comments)}
+                </span>
+              </button>
 
-                {/* Share */}
-                <button
-                  type="button"
-                  className="flex flex-col items-center gap-1"
+              {/* Share */}
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
                 >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(255,255,255,0.08)' }}
-                  >
-                    <Share2 size={18} className="text-white" />
-                  </div>
-                  <span className="text-[10px] font-bold text-white/70">
-                    Share
-                  </span>
-                </button>
-              </div>
+                  <Share2 size={18} className="text-white" />
+                </div>
+                <span className="text-[10px] font-bold text-white/70">
+                  Share
+                </span>
+              </button>
             </div>
 
-            {/* ── Token info overlay (bottom) ────────────────────── */}
-            <div className="px-4 pb-4 pt-2 space-y-1.5">
+            {/* ── Token info overlay (pinned to bottom) ──────────── */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-6 space-y-1.5 z-10">
               {/* Token name row */}
               <div className="flex items-center gap-2">
                 <div
