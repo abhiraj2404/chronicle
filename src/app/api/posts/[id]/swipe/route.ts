@@ -1,6 +1,9 @@
 import { connectDB } from '@/lib/db';
 import { Post } from '@/models/Post';
 import { Swipe } from '@/models/Swipe';
+import { UserPreferences } from '@/models/UserPreferences';
+import { Portfolio } from '@/models/Portfolio';
+import { Transaction } from '@/models/Transaction';
 import { likeTapestryPost } from '@/lib/tapestry-posts';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -11,7 +14,7 @@ export async function POST(
     try {
         const postId = params.id;
         const body = await req.json();
-        const { swiperWallet, isRightSwipe } = body;
+        const { swiperWallet, isRightSwipe, customBuyAmount } = body;
 
         if (!swiperWallet || isRightSwipe === undefined) {
             return NextResponse.json(
@@ -36,16 +39,61 @@ export async function POST(
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
+        // Determine the actual buy amount if it's a right swipe
+        let buyAmount = 0;
+        if (isRightSwipe) {
+            if (customBuyAmount !== undefined && customBuyAmount > 0) {
+                buyAmount = customBuyAmount;
+            } else {
+                // Fetch default preference
+                const prefs = await UserPreferences.findOne({ walletAddress: swiperWallet });
+                if (prefs && prefs.defaultBuyAmount > 0) {
+                    buyAmount = prefs.defaultBuyAmount;
+                }
+            }
+        }
+
         // Save the new swipe record
         const swipe = new Swipe({
             swiperWallet,
             postId,
             isRightSwipe,
+            buyAmount: isRightSwipe ? buyAmount : undefined,
         });
         await swipe.save();
 
-        // Handle Right Swipe Actions (Buy/Like mechanism)
+        let transaction = null;
+
         if (isRightSwipe) {
+
+            if (buyAmount > 0) {
+                //updating portfolio
+                //a simulated execution price or fetch from real Oracle if we go w one
+                //assuming `buyAmount` passed/configured is in Quote currency (e.g., exactly $10 USDC to spend)
+                // for simplicity without live quoting here, we record the "amount" as the total USD spent.
+                // in prod,wed calculate exact token amounts via Jupiter/Raydium here.
+
+                await Portfolio.findOneAndUpdate(
+                    { walletAddress: swiperWallet, tokenCA: post.tokenCA },
+                    {
+                        $inc: {
+                            balance: buyAmount,
+                            totalInvested: buyAmount
+                        }
+                    },
+                    { new: true, upsert: true }
+                );
+
+                // Log the BUY Transaction
+                transaction = new Transaction({
+                    walletAddress: swiperWallet,
+                    tokenCA: post.tokenCA,
+                    type: 'BUY',
+                    amount: buyAmount,
+                    pricePaid: buyAmount,
+                });
+                await transaction.save();
+            }
             // Increment right swipes counter on the post
             post.rightSwipes += 1;
             await post.save();
