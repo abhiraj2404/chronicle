@@ -23,7 +23,7 @@ const DEFAULT_SLIPPAGE_BPS = 50
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FeedCard {
-  id: number
+  id: number | string
   tokenSymbol: string
   tokenTicker: string
   tokenPrice: string
@@ -189,20 +189,75 @@ function formatCount(n: number): string {
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function FeedPage() {
   const { walletAddress } = useCurrentWallet()
+  const [feedCards, setFeedCards] = useState<FeedCard[]>(CARDS)
   const [currentIdx, setCurrentIdx] = useState(0)
   const [direction, setDirection] = useState<'up' | 'down'>('up')
   const [isAnimating, setIsAnimating] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  
+
   // Buy Screen State
   const [selectedBuyCard, setSelectedBuyCard] = useState<FeedCard | null>(null)
   const [isExecutingBuy, setIsExecutingBuy] = useState(false)
   const [amountMode, setAmountMode] = useState<'default' | 'custom'>('default')
   const [customAmount, setCustomAmount] = useState<string>('')
-  
+
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const card = CARDS[currentIdx % CARDS.length]
+  // Fetch live posts
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const res = await fetch(`/api/posts${walletAddress ? `?walletAddress=${walletAddress}` : ''}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.posts && Array.isArray(data.posts)) {
+          const liveCards: FeedCard[] = data.posts.map((post: any) => {
+            const isVideo = post.contentUrl.match(/\.(mp4|webm|ogg)$/i) || post.contentUrl.includes('/video/')
+            return {
+              id: post._id,
+              tokenSymbol: '$UNKNOWN', // Mock since DB doesn't store token symbol yet
+              tokenTicker: 'U',
+              tokenPrice: '$0.00',
+              priceChange: '0%',
+              isPositive: true,
+              marketCap: 'Unknown',
+              isTrending: false,
+              tokenCA: post.tokenCA,
+              decimals: 6,
+              likes: 0,
+              comments: 0,
+              shares: 0,
+              media: { type: isVideo ? 'video' : 'image', url: post.contentUrl },
+              visual: {
+                gradientFrom: '#3b82f6',
+                gradientTo: '#8b5cf6',
+                glowColor: 'rgba(59,130,246,0.25)',
+                letter: 'U',
+              },
+              creator: {
+                username: post.creatorWallet ? `${post.creatorWallet.slice(0, 4)}...${post.creatorWallet.slice(-4)}` : 'Anonymous',
+                tagline: 'New Creator'
+              },
+              description: post.caption || 'No description provided.',
+            }
+          })
+
+          setFeedCards(prev => {
+            // Filter out any duplicates assuming ID uniqueness
+            const existingIds = new Set(prev.map(c => c.id))
+            const newCards = liveCards.filter(c => !existingIds.has(c.id))
+            return [...prev, ...newCards]
+          })
+        }
+      } catch (e) {
+        console.error('Failed to fetch live posts:', e)
+      }
+    }
+
+    fetchPosts()
+  }, [walletAddress])
+
+  const card = feedCards[currentIdx % feedCards.length]
   const hasMedia = !!card.media
 
   // Auto-play video when card changes
@@ -223,12 +278,12 @@ export default function FeedPage() {
     if (isAnimating) return;
     setDirection(dir)
     setIsAnimating(true)
-    
+
     // Slight delay to allow framer motion to sync state
     setTimeout(() => {
       setCurrentIdx((p) => {
-        if (dir === 'up') return (p + 1) % CARDS.length;
-        return (p - 1 + CARDS.length) % CARDS.length;
+        if (dir === 'up') return (p + 1) % feedCards.length;
+        return (p - 1 + feedCards.length) % feedCards.length;
       })
       setTimeout(() => setIsAnimating(false), 300) // Unlock interactions after animation
     }, 50)
@@ -263,8 +318,8 @@ export default function FeedPage() {
   const estimatedTokens =
     tokenPriceNumeric > 0 && isValidPurchaseAmount
       ? (purchaseSolAmount / tokenPriceNumeric).toLocaleString(undefined, {
-          maximumFractionDigits: 2,
-        })
+        maximumFractionDigits: 2,
+      })
       : '0'
 
   // ── Execute Buy via Jupiter (SOL → token) then advance card ───────────
@@ -377,7 +432,7 @@ export default function FeedPage() {
             onDragEnd={(e, { offset, velocity }) => {
               const swipeY = offset.y;
               const swipeX = offset.x;
-              
+
               if (Math.abs(swipeX) > Math.abs(swipeY)) {
                 // Horizontal Swipe
                 if (swipeX > 80 || velocity.x > 500) {
@@ -734,25 +789,23 @@ export default function FeedPage() {
                 <h4 className="text-sm font-bold text-zinc-500 uppercase tracking-widest pl-1">
                   Select Amount
                 </h4>
-                
+
                 <div className="flex bg-[#121824] p-1.5 rounded-2xl border border-white/5">
                   <button
                     onClick={() => setAmountMode('default')}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
-                      amountMode === 'default'
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'default'
                         ? 'bg-zinc-800 text-white shadow-lg'
                         : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                    }`}
+                      }`}
                   >
                     Default ({DEFAULT_BUY_SOL} SOL)
                   </button>
                   <button
                     onClick={() => setAmountMode('custom')}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
-                      amountMode === 'custom'
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${amountMode === 'custom'
                         ? 'bg-zinc-800 text-white shadow-lg'
                         : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                    }`}
+                      }`}
                   >
                     Custom
                   </button>
