@@ -7,5 +7,9 @@ interface Props {
 export default async function ProfilePage({ params }: Props) {
   const username = (await params).username
 
-  return <ProfileContent username={username} />
+  return (
+    <div className="px-4 py-4">
+      <ProfileContent username={username} />
+    </div>
+  )
 }
