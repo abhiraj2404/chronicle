@@ -78,11 +78,11 @@ export function ProfileContent({ username }: Props) {
         >
           {/* Subtle noise grid overlay */}
           <div
-            className="absolute inset-0 opacity-20 mix-blend-overlay"
-            style={{
-              backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
-              backgroundSize: '24px 24px',
-            }}
+             className="absolute inset-0 opacity-20 mix-blend-overlay"
+             style={{
+               backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
+               backgroundSize: '24px 24px',
+             }}
           />
         </div>
 
