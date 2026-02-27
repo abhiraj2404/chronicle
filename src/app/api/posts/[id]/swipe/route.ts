@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/db';
 import { Post } from '@/models/Post';
 import { Swipe } from '@/models/Swipe';
+import { UserPreferences } from '@/models/UserPreferences';
 import { likeTapestryPost } from '@/lib/tapestry-posts';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -11,7 +12,7 @@ export async function POST(
     try {
         const postId = params.id;
         const body = await req.json();
-        const { swiperWallet, isRightSwipe } = body;
+        const { swiperWallet, isRightSwipe, customBuyAmount } = body;
 
         if (!swiperWallet || isRightSwipe === undefined) {
             return NextResponse.json(
@@ -36,11 +37,26 @@ export async function POST(
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
+        // Determine the actual buy amount if it's a right swipe
+        let buyAmount = 0;
+        if (isRightSwipe) {
+            if (customBuyAmount !== undefined && customBuyAmount > 0) {
+                buyAmount = customBuyAmount;
+            } else {
+                // Fetch default preference
+                const prefs = await UserPreferences.findOne({ walletAddress: swiperWallet });
+                if (prefs && prefs.defaultBuyAmount > 0) {
+                    buyAmount = prefs.defaultBuyAmount;
+                }
+            }
+        }
+
         // Save the new swipe record
         const swipe = new Swipe({
             swiperWallet,
             postId,
             isRightSwipe,
+            buyAmount: isRightSwipe ? buyAmount : undefined,
         });
         await swipe.save();
 
