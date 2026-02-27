@@ -1,6 +1,6 @@
 {
-    "name": "MEMEX",
-    "short_name": "MEMEX",
+    "name": "Chronicle",
+    "short_name": "Chronicle",
     "description": "Swipe on memecoin pitches, auto-buy your favourites, and follow top on-chain callers.",
     "start_url": "/",
     "display": "standalone",
