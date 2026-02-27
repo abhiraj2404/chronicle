@@ -104,7 +104,7 @@ export default function CreatePostPage() {
       return
     }
 
-    if (!isFormValid) {
+    if (!isFormValid || !mediaFile) {
       toast.error('Please fill in all fields correctly.')
       return
     }
@@ -112,12 +112,23 @@ export default function CreatePostPage() {
     setIsSubmitting(true)
 
     try {
-      /* 
-        For now we pass the media as a base64 data URL.
-        In production you'd upload to S3/IPFS and get a hosted URL.
-      */
-      const contentUrl = mediaPreview ?? ''
+      // 1. Upload the physical media file to Cloudinary via our secure backend route
+      const formData = new FormData()
+      formData.append('file', mediaFile)
 
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json().catch(() => null)
+        throw new Error(errData?.error || 'Failed to upload media to Cloudinary')
+      }
+
+      const { secure_url: contentUrl } = await uploadRes.json()
+
+      // 2. Create the post in the database using the new securely hosted Cloudinary URL
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
