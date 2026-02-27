@@ -35,7 +35,7 @@ export function BottomNav() {
       label: 'Feed',
     },
     {
-      href: '/trade',
+      href: '/create',
       icon: <PlusCircle size={22} />,
       activeIcon: <PlusCircle size={22} fill="currentColor" />,
       label: 'Create',
