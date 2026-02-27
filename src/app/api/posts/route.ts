@@ -57,15 +57,19 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const walletAddress = searchParams.get('walletAddress');
+        const byCreator = searchParams.get('byCreator') === 'true';
 
         await connectDB();
 
-        let filter = {};
-        if (walletAddress) {
-            // Find all post IDs this user has already swiped on
+        let filter: Record<string, unknown> = {};
+
+        if (walletAddress && byCreator) {
+            // Profile: posts created by this wallet
+            filter = { creatorWallet: walletAddress };
+        } else if (walletAddress) {
+            // Feed: exclude posts this user has already swiped on
             const userSwipes = await Swipe.find({ swiperWallet: walletAddress }).select('postId');
             const swipedPostIds = userSwipes.map((swipe: any) => swipe.postId);
-
             filter = { _id: { $nin: swipedPostIds } };
         }
 
